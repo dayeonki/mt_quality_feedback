@@ -1,0 +1,140 @@
+h-l-1{
+    background-color: #8cff32;
+    color: black;
+    border-radius: 6px;
+    padding: 1px 1px;
+}
+
+h-l-2{
+    background-color: #FFFF00;
+    color: black;
+    border-radius: 6px;
+    padding: 1px 1px;
+}
+
+.table {
+  border: 1px solid black; /* Thicker black border */
+}
+
+.table th, .table td {
+  border: 1px solid black !important; /* Thicker black lines for each cell */
+}
+
+/* Color the header */
+.table thead {
+  background-color: #d6d6d6; /* Light gray */
+}
+
+/* Color the first column (Questions) */
+.table tbody tr td:first-child {
+  background-color: #f2f2f2; /* Light gray */
+}
+
+.checkboxes label {
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.checkboxes input {
+    margin-top:0px !important;
+    vertical-align: middle;
+}
+
+.checkboxes label span {
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+.ins{
+    margin-top:10px;
+}
+
+p.a {
+  font-family: "Times New Roman", Times, serif;
+}
+
+p.b {
+  font-family: "Times New Roman", Times, serif;
+}
+
+.panel-primary > .panel-heading-custom {
+    background: #ff0000; color: #fff;
+}
+
+.panel-attention {
+  border: 1px solid #d9534f;  /* bring back outer border */
+  border-radius: 4px;
+}
+
+.panel-attention > .panel-heading {
+  color: #fff;
+  background-color: #d9534f;
+  border-color: #d43f3a;
+  border-bottom: 1px solid #d43f3a;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.panel-attention > .panel-body {
+  border-top: 1px solid #d43f3a;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  background-color: #fff; /* keep white background for body */
+  padding: 15px;
+  border-left: 1px solid #d9534f;
+  border-right: 1px solid #d9534f;
+  border-bottom: 1px solid #d9534f;
+}
+
+.panel-attention > .panel-body {
+  background-color: #f6ecec;  /* very light red/pink */
+}
+
+  /* Using css var aka custom properies, don't use them if you don't use tools such as postCss */
+    :root {
+      --color-blue: #5897fc;
+      --color-blue-grayed: #e0ecff;
+    }
+    /* First hide radios */
+    .questions input[type="radio"] {
+      display: none;
+    }
+
+    /* Generate new radio buttons, which we can style via css */
+    .questions label:before {
+      content: attr(data-question-number);
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid;
+      text-align: center;
+      line-height: 30px;
+      margin-right: 20px;
+    }
+
+    /* Applying styles when checking the buttons */
+    .questions input[type="radio"]:checked ~ label {
+      background-color: var(--color-blue-grayed);
+      border-color: var(--color-blue);
+    }
+
+    .questions input[type="radio"]:checked ~ label:before {
+      background-color: var(--color-blue);
+      border-color: var(--color-blue);
+      color: white;
+    }
+
+    .questions label {
+      display: block;
+      cursor: pointer;
+
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: white;
+      border: 2px solid white;
+      border-radius: 15px;
+    }
+    .questions {
+      padding: 5px;
+    }

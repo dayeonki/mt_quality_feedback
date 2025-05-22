@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>COVID-19 Translation Quality Assessment</title>
+  <meta name="description" content="COVID-19 Translation Quality Assessment">
+
+  <link rel="stylesheet" href="static/css/main.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="static/css/introjs.css">
+  <link rel="canonical" href="">
+
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/language.png') }}">
+
+  <base target="_blank">
+  <script>
+    let examples = {{ examples | tojson | safe }}; // Ensure proper JSON format
+    let condition = "{{ condition }}";  // Pass condition from Jinja2 template
+    let currentIndex = 0;  // Start at 0
+    let step = 1;
+    let realExampleCounter = 0;
+
+    function isValid(value) {
+        return value && value !== "NaN" && value !== "nan" && value !== "None";
+    }
+    
+    function insertAttentionChecks(examples) {
+        let result = [];
+
+        for (let i = 0; i < examples.length; i++) {
+            const example = examples[i];
+            result.push(example);
+
+            // Insert attention check after step 2 of example 5 and 15
+            if (i === 5 || i === 15) {
+                result.push({
+                    is_attention_check: true,
+                    id: example.id + "_attn",
+                    en_src: example.en_src,
+                    es_tgt: example.es_tgt,
+                    questions: example.questions,
+                    ref_answers: example.ref_answers,
+                    pred_answers: example.pred_answers,
+                    backtranslation: example.backtranslation,
+                    explanation: example.explanation,
+                    xcomet_annotations: example.xcomet_annotations
+                });
+            }
+        }
+
+        return result;
+    }
+    examples = insertAttentionChecks(examples);
+
+  </script>
+</head>
+
+
+
+<body>
+    <section class="container">
+        <!-- Prolific code -->
+        <div class="row" style="margin-top:10px; display:none;" id="prolific-code">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>
+                        <img src="{{ url_for('static', filename='images/id-card.png') }}" alt="Prolific icon" style="height: 20px; position: relative; top: -3px; margin-right: 5px;">Prolific ID</strong></div>
+                        <div class="panel-body">
+
+                        <!-- Pre-survey Questions -->
+                        <div class="form-group">
+                            <p style="font-size: 15px; font-weight: normal;">
+                                We will need your <b>Prolific ID</b> for quality check and compensation. Please enter it accurately. <b>*</b>
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <p style="font-size: 15px; font-weight: normal;">
+                                <input type="text" class="form-control" id="prolific-id" placeholder="Type your Prolific ID">
+                            </p>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <button id="prolificButton" class="btn btn-primary">Proceed</button>
+                        </div>
+            
+                        <script>
+                            document.getElementById("prolificButton").addEventListener("click", function () {
+                                let prolificid = document.getElementById("prolific-id").value.trim();
+                            
+                                if (!prolificid) {
+                                    alert("Please answer the question before proceeding.");
+                                    return;
+                                }
+                            
+                                // Save as comma-separated strings in sessionStorage (or keep as arrays if preferred)
+                                sessionStorage.setItem("prolific_id", prolificid);
+                                document.getElementById("prolific-code").style.display = "none";
+                                document.getElementById("pre-survey").style.display = "block";
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            });
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+         
+
+        <!-- Pre-survey questions -->
+        <div class="row" style="margin-top:10px; display:none;" id="pre-survey">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>
+                        <img src="{{ url_for('static', filename='images/survey.png') }}" alt="Survey icon" style="height: 20px; position: relative; top: -3px; margin-right: 5px;">Pre-Survey Questions</strong></div>
+                        <div class="panel-body">
+
+                        <!-- Pre-survey Questions -->
+                        <div class="form-group">
+                            <p style="font-size: 15px; font-weight: normal;">
+                                Before starting the survey, we will ask a few questions about your first language, language proficiency in English and {{ target_language }}, and your use of AI translation tools in your daily work and life. 
+                                Please answer all of the following questions.
+                            </p>
+                        </div>
+                        <br>
+                
+                        <!-- First Language -->
+                        <div class="form-group">
+                            <label for="first-language">(1) What is your first language (or languages)? *</label>
+                            <br>
+                            <small>First language (mother tongue) refers to the language you were exposed to during early childhood and are most fluent in.</small>
+                            <input type="text" class="form-control" id="first-language" placeholder="Type your first language(s). If multiple, separate by comma (e.g., English,Spanish)">
+                        </div>
+                        <br>
+            
+                        <!-- English Proficiency -->
+                        <div class="form-group">
+                            <label>(2) What is your level of proficiency in English? *</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="english-proficiency" value="1"><span class="radio-text">I cannot understand any English words or sentences at all.</span></label><br>
+                                <label><input type="radio" name="english-proficiency" value="2"><span class="radio-text">I can read some English words and very simple sentences.</span></label><br>
+                                <label><input type="radio" name="english-proficiency" value="3"><span class="radio-text">I can read short, simple texts in English, such as messages from friends.</span></label><br>
+                                <label><input type="radio" name="english-proficiency" value="4"><span class="radio-text">I can read English texts about everyday life, such as short novels or news articles.</span></label><br>
+                                <label><input type="radio" name="english-proficiency" value="5"><span class="radio-text">I can read long and difficult texts in English, such as opinion essays or scientific papers, without help.</span></label>
+                            </div>
+                        </div>
+                        <br>
+            
+                        <!-- Target Language Proficiency -->
+                        <div class="form-group">
+                            <label>(3) What is your level of proficiency in {{ target_language }}? *</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="target-proficiency" value="1"><span class="radio-text">I cannot understand any {{ target_language }} words or sentences at all.</span></label><br>
+                                <label><input type="radio" name="target-proficiency" value="2"><span class="radio-text">I can read some {{ target_language }} words and very simple sentences.</span></label><br>
+                                <label><input type="radio" name="target-proficiency" value="3"><span class="radio-text">I can read short, simple texts in {{ target_language }}, such as messages from friends.</span></label><br>
+                                <label><input type="radio" name="target-proficiency" value="4"><span class="radio-text">I can read {{ target_language }} texts about everyday life.</span></label><br>
+                                <label><input type="radio" name="target-proficiency" value="5"><span class="radio-text">I can read long and difficult texts in {{ target_language }}, such as opinion essays or scientific papers, without help.</span></label>
+                            </div>
+                        </div>
+                        <br>
+            
+                        <!-- Frequency of Translation Tool Use -->
+                        <div class="form-group">
+                            <label>(4) In the past month, how often did you use AI translation tools (e.g., Google Translate, ChatGPT)? *</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="mt-frequency" value="never"><span class="radio-text">Never: Never in the past month</span></label><br>
+                                <label><input type="radio" name="mt-frequency" value="rarely"><span class="radio-text">Rarely: Fewer than once a week</span></label><br>
+                                <label><input type="radio" name="mt-frequency" value="sometimes"><span class="radio-text">Sometimes: Two or three times a week</span></label><br>
+                                <label><input type="radio" name="mt-frequency" value="often"><span class="radio-text">Often: More than three times a week, but not every day</span></label><br>
+                                <label><input type="radio" name="mt-frequency" value="always"><span class="radio-text">Always: Almost every day</span></label>
+                            </div>
+                        </div>
+            
+                        <div style="margin-top: 10px;">
+                            <button id="preSurveyButton" class="btn btn-primary">To Instructions</button>
+                        </div>
+            
+                        <script>
+                            document.getElementById("preSurveyButton").addEventListener("click", function () {
+                                let firstLang = document.getElementById("first-language").value.trim();
+                            
+                                let englishProficiency = Array.from(document.querySelectorAll('input[name="english-proficiency"]:checked'))
+                                    .map(cb => cb.value);
+                            
+                                let targetProficiency = Array.from(document.querySelectorAll('input[name="target-proficiency"]:checked'))
+                                    .map(cb => cb.value);
+                            
+                                let mtFreq = document.querySelector('input[name="mt-frequency"]:checked')?.value;
+                            
+                                if (!firstLang || englishProficiency.length === 0 || targetProficiency.length === 0 || !mtFreq) {
+                                    alert("Please answer all questions before proceeding.");
+                                    return;
+                                }
+                            
+                                // Save as comma-separated strings in sessionStorage (or keep as arrays if preferred)
+                                sessionStorage.setItem("first_language", firstLang);
+                                sessionStorage.setItem("en_proficiency", englishProficiency.join(','));
+                                sessionStorage.setItem("target_proficiency", targetProficiency.join(','));
+                                // Later parse by .split(",")
+                                sessionStorage.setItem("mt_frequency", mtFreq);
+                        
+                                // Proceed to task instructions
+                                document.getElementById("pre-survey").style.display = "none";
+                                document.getElementById("instructions").style.display = "block";
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                                setTimeout(() => {
+                                    document.getElementById("trust-question").scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }, 100);
+                            });
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Post-survey questions -->
+        <div class="row" style="margin-top:10px; display:none;" id="post-survey">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>
+                        <img src="{{ url_for('static', filename='images/survey.png') }}" alt="Survey icon" style="height: 20px; position: relative; top: -3px; margin-right: 5px;">Post-Survey Questions</strong></div>
+                        <div class="panel-body">
+
+                        <!-- Post-survey Intro Instruction -->
+                        <div class="form-group">
+                            <p style="font-size: 15px; font-weight: normal;">
+                                Before completing the survey, we will ask a few questions about your annotation experience. Please answer all of the following questions.
+                            </p>
+                        </div>
+                        <br>
+
+                        <!-- Workload -->
+                        <div class="form-group">
+                            <label for="workload">(1) How much mental burden (e.g., thinking, deciding) did you experience while using the <span id="task-instruction-type"></span>? *</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="workload" value="1"><span class="radio-text">1 (Low)</span></label><br>
+                                <label><input type="radio" name="workload" value="2"><span class="radio-text">2</span></label><br>
+                                <label><input type="radio" name="workload" value="3"><span class="radio-text">3</span></label><br>
+                                <label><input type="radio" name="workload" value="4"><span class="radio-text">4</span></label><br>
+                                <label><input type="radio" name="workload" value="5"><span class="radio-text">5</span></label><br>
+                                <label><input type="radio" name="workload" value="6"><span class="radio-text">6</span></label><br>
+                                <label><input type="radio" name="workload" value="7"><span class="radio-text">7 (High)</span></label>
+                            </div>
+                        </div>
+                        <br>
+                
+                        <!-- Helpfulness -->
+                        <div class="form-group">
+                            <label for="helfulness">(2) How helpful was the <span id="task-instruction-type"></span> in assisting the Spanish translation quality assessment? *</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="helpfulness" value="1"><span class="radio-text">1 (Very unhelpful)</span></label><br>
+                                <label><input type="radio" name="helpfulness" value="2"><span class="radio-text">2 (Unhelpful)</span></label><br>
+                                <label><input type="radio" name="helpfulness" value="3"><span class="radio-text">3 (Neutral)</span></label><br>
+                                <label><input type="radio" name="helpfulness" value="4"><span class="radio-text">4 (Helpful)</span></label><br>
+                                <label><input type="radio" name="helpfulness" value="5"><span class="radio-text">5 (Very helpful)</span></label>
+                            </div>
+                        </div>
+                        <br>
+            
+                        <!-- Follow-up questions -->
+                        <div class="form-group" style="display:none;" id="follow-up-12">
+                            <label>In what ways was the information provided by <span id="task-instruction-type"></span> confusing or unhelpful? <em style="font-weight: normal; font-size: 90%;">(optional)</em></label>
+                            <textarea class="form-control" id="follow-up-a1-1" rows="3" placeholder="Type your feedback here"></textarea>
+                            <br>
+                        </div>
+
+                        <!-- Follow-up: Neutral -->
+                        <div class="form-group" style="display:none;" id="follow-up-3">
+                            <label>How did you use the information provided by <span id="task-instruction-type"></span> in your assessment? <em style="font-weight: normal; font-size: 90%;">(optional)</em></label>
+                            <textarea class="form-control" id="follow-up-a1-2" rows="3" placeholder="Type your feedback here"></textarea>
+                            <br>
+                        </div>
+
+                        <!-- Follow-up: Helpful -->
+                        <div class="form-group" style="display:none;" id="follow-up-45">
+                            <label>In what ways was the information provided by <span id="task-instruction-type"></span> helpful? <em style="font-weight: normal; font-size: 90%;">(optional)</em></label>
+                            <textarea class="form-control" id="follow-up-a1-3" rows="3" placeholder="Type your feedback here"></textarea>
+                            <br>
+                        </div>
+
+                        <div class="form-group" style="display:none;" id="trust-question">
+                            <label for="trust">(3) Would you use the <span id="task-instruction-type"></span> again in the future? *</label>
+                            <div class="radio-options">
+                                <label><input type="radio" name="trust" value="1"><span class="radio-text">1 (Very unlikely)</span></label><br>
+                                <label><input type="radio" name="trust" value="2"><span class="radio-text">2 (Unlikely)</span></label><br>
+                                <label><input type="radio" name="trust" value="3"><span class="radio-text">3 (Neutral)</span></label><br>
+                                <label><input type="radio" name="trust" value="4"><span class="radio-text">4 (Likely)</span></label><br>
+                                <label><input type="radio" name="trust" value="5"><span class="radio-text">5 (Very likely)</span></label>
+                            </div>
+                            <br>
+                        </div>
+                        
+                        <div style="margin-top: 10px;">
+                            <button id="postSurveyButton" class="btn btn-primary">Submit</button>
+                        </div>
+            
+                        <script>
+                            document.getElementById("postSurveyButton").addEventListener("click", function () {
+                                let workload = document.querySelector('input[name="workload"]:checked')?.value;
+                                let helpfulness = document.querySelector('input[name="helpfulness"]:checked')?.value;
+                                let trustVisible = document.getElementById("trust-question").style.display !== "none";
+                                let trust = document.querySelector('input[name="trust"]:checked')?.value;
+
+                                // If helpfulness not selected at all
+                                if (!workload) {
+                                    alert("Please answer the question before proceeding.");
+                                    return;
+                                }
+
+                                if (!helpfulness) {
+                                    alert("Please answer the question before proceeding.");
+                                    return;
+                                }
+
+                                if (trustVisible && !trust) {
+                                    alert("Please answer all questions before submitting.");
+                                    return;
+                                }
+
+                                // If trust-question is already visible and trust is selected → submit
+                                if (trustVisible && trust) {
+                                    let followup12 = document.getElementById("follow-up-a1-1").value.trim();
+                                    let followup3 = document.getElementById("follow-up-a1-2").value.trim();
+                                    let followup45 = document.getElementById("follow-up-a1-3").value.trim();
+
+                                    let responseData = {
+                                        prolific_id: sessionStorage.getItem("prolific_id") || "",
+                                        first_language: sessionStorage.getItem("first_language") || "",
+                                        en_proficiency: sessionStorage.getItem("en_proficiency") || "",
+                                        target_proficiency: sessionStorage.getItem("target_proficiency") || "",
+                                        mt_frequency: sessionStorage.getItem("mt_frequency") || "",
+                                        id: "POSTSURVEY",
+                                        is_shareable: "",
+                                        is_attention_check: "",
+                                        en_src: "",
+                                        es_tgt: "",
+                                        pert_type: "",
+                                        condition: sessionStorage.getItem("condition") || "",
+                                        shareability_response: "",
+                                        confidence_response: "",
+                                        workload: workload,
+                                        helpfulness: helpfulness,
+                                        trust: trust,
+                                        follow_up_12: followup12,
+                                        follow_up_3: followup3,
+                                        follow_up_45: followup45,
+                                    };
+
+                                    fetch("/", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json"
+                                        },
+                                        body: JSON.stringify(responseData)
+                                    })
+                                    .then(response => response.text())
+                                    .then(data => {
+                                        console.log("Post-survey response saved:", data);
+                                        window.location.href = "/end";
+                                    })
+                                    .catch(error => {
+                                        console.error("Error saving post-survey:", error);
+                                        alert("Something went wrong. Please try again.");
+                                    });
+                                }
+
+                                // First click: show follow-ups + trust question
+                                document.getElementById("follow-up-12").style.display = "none";
+                                document.getElementById("follow-up-3").style.display = "none";
+                                document.getElementById("follow-up-45").style.display = "none";
+                                document.getElementById("trust-question").style.display = "none";
+
+                                if (helpfulness === "1" || helpfulness === "2") {
+                                    document.getElementById("follow-up-12").style.display = "block";
+                                } else if (helpfulness === "3") {
+                                    document.getElementById("follow-up-3").style.display = "block";
+                                } else if (helpfulness === "4" || helpfulness === "5") {
+                                    document.getElementById("follow-up-45").style.display = "block";
+                                }
+                                document.getElementById("trust-question").style.display = "block";
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                                setTimeout(() => {
+                                    document.getElementById("trust-question").scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }, 100);
+                            });
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Consent to Participate -->
+        <div class="row" style="margin-top:10px;" id="consent">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <a class="panel-heading" id="collapseTrigger"><strong>
+                        <img src="{{ url_for('static', filename='images/consent.png') }}" alt="Consent icon" style="height: 20px; position: relative; top: -3px; margin-right: 5px;">Consent Form</strong></a>
+                    <div class="panel-body">
+                        <!-- <p>About the task</p> -->
+                        <div class="ins" style="font-size: 20px;">
+                            <b>Project Title:</b>
+                            Toward Safe and Reliable Machine Translation (IRB Package Number 2245213-1) <img src="{{ url_for('static', filename='images/mask.png') }}" alt="COVID-19 icon" style="height: 28px; position: relative; top: -3px; margin-right: 5px;">
+                        </div>
+                        <!-- <b>Principal Investigator:</b> Dr. Marine Carpuat (marine@umd.edu), University of Maryland, College Park. <br> -->
+                        <div class="ins">
+                            <b>About the study:</b> This research is being conducted by Marine Carpuat at the University of Maryland, College Park. The research investigates ways to design safe and reliable machine translation technology by studying how people perceive and act upon possibly imperfect machine translations.
+                        </div>
+                        <div class="ins">
+                            <b>Data and Confidentiality:</b> 
+                            <ul>
+                                <li>Crowdworker ID is the only potentially identifying information, which will be removed from the data after the participants are paid. Only the principal investigator and the co-investigators of the study will have access to the data before they are removed.</li>
+                                <li>All data will be anonymized prior to public release and responses cannot be linked to individuals.</li>
+                                <li>Any potential loss of confidentiality will be minimized by storing data in a secured internal platform at University of Maryland, College Park.</li>
+                                <li>Your information may be shared with representatives of the University of Maryland, College Park or governmental authorities if you or someone else is in danger or if we are required to do so by law.</li>
+                            </ul>
+                        </div>
+                        <div class="ins">
+                            <b>Right to Withdraw and Questions:</b> Participation in the study is completely voluntary. 
+                            If you decide to participate in this research, you may stop participating at any time. If you have questions, concerns, or complaints, or if you need to report an injury related to the research, please contact the investigator:
+                            <div style="text-align: center">
+                                <div>Dr. Marine Carpuat</div>
+                                <div>4130 Brendan Iribe Center for Computer Science and Engineering</div>
+                                <div>8125 Paint Branch Dr.</div>
+                                <div>College Park, Maryland, 20742</div>
+                                <div>E-mail: marine@umd.edu</div>
+                            </div>
+                        </div>
+                        <div class="ins">
+                            <b>Risks:</b> There are no known risks associated with participants of this study.
+                        </div>
+                        <div class="ins">
+                            <b>Benefits:</b>  The studies are being conducted solely for research purposes, and are not expected to directly benefit participants. 
+                            Participants may indirectly benefit from participating in the study by gaining knowledge about the capabilities of AI systems. 
+                            In the long term, the findings may benefit a broader population by improving AI translation technology.
+                        </div>
+                        <div class="ins">
+                            <b>Participant Rights: </b>If you have questions about your rights as a research participant or wish to report a research-related injury, please contact: <br>
+                            <div style="text-align: center">
+                                <div>University of Maryland College Park</div>
+                                <div>Institutional Review Board Office</div>
+                                <div>1204 Marie Mount Hall</div>
+                                <div>College Park, Maryland, 20742</div>
+                                <div>E-mail: irb@umd.edu</div>
+                                <div>Telephone: 301-405-0678</div>
+                                <div>IRBNet #2245213-1</div>
+                            </div>
+                            For more information regarding participant rights, please visit: <a href="https://research.umd.edu/irb-research-participants">https://research.umd.edu/irb-research-participants</a>.
+                            This research has been reviewed according to the University of Maryland, College Park IRB procedures for research involving human subjects.
+                        </div>
+                        <div class="ins">
+                            <b>Compensation: </b>You will receive a compensation of $5 per session, which is estimated to take at most 20 minutes. If your accuracy exceeds 70%, you will receive a performance-based bonus of $2.<br>
+                        </div>
+                        <div class="ins">
+                            <b>Consent Statement: </b>By clicking 'I consent to participate in the study', you indicate that you are at least 18 years of age; 
+                            you have read this consent information or have had it read to you; 
+                            your questions have been answered to your satisfaction and you voluntarily agree to participate in this research study. 
+                            Please download/print/save a copy of this consent information for your records.
+                        </div>
+                        <div class="ins checkboxes">
+                            <label for="consent" style="font-weight: normal;">
+                                <input type="checkbox" id="consentCheckbox" name="consent">
+                                <span>I consent to participate in the study.</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <button id="consentButton" class="btn btn-primary">Proceed</button>
+                        </div>
+
+                        <script>
+                            document.getElementById("consentButton").addEventListener("click", function () {
+                            var consentCheckbox = document.getElementById("consentCheckbox");
+
+                            if (consentCheckbox.checked) {
+                                document.getElementById("consent").style.display = "none";
+                                document.getElementById("prolific-code").style.display = "block";  // Show pre-survey next
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } else {
+                                alert("Please consent to the study before moving forward.");
+                            }
+                        });
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Brief Task Instructions (show on top) -->
+        <div class="row" style="margin-top:10px;" id="abbreviated-instructions">
+            <div class="col-xs-12 col-md-12">
+              <div class="panel panel-primary">
+                <div class="panel-heading" id="collapseTriggerInstructions" style="cursor: pointer;">
+                    <strong>
+                        <img src="{{ url_for('static', filename='images/instruction.png') }}" alt="Instruction icon" style="height: 20px; position: relative; top: -3px; margin-right: 5px;">Task Instructions</strong> <small>(click to collapse)</small>
+                    <span class="collapse-icon" style="float: right; font-size: 14px; margin-top: 2px;">▼</span>
+                </div>
+                <div class="panel-body" style="display: block;">  <!-- or "none" if collapsed by default -->
+                  <ul>
+                    <li>Using the provided information, you will assess whether the Spanish translation is of sufficient quality to safely share with your Spanish neighbor. Answer to the best of your knowledge, even if you cannot understand Spanish.</li>
+                    <li>You may change your initial decision after reviewing the AI feedback.</li>
+                    <li>You can select one of the following two options:</li>
+                    <ul>
+                      <li><b>Safe to share as-is <img src="{{ url_for('static', filename='images/good.png') }}" alt="Good icon" style="height: 16px; vertical-align: middle; margin-right: 5px;">:</b> No or minimal risk.</li>
+                      <li><b>Needs bilingual review before sharing <img src="{{ url_for('static', filename='images/wrong.png') }}" alt="Wrong icon" style="height: 16px; vertical-align: middle; margin-right: 5px;">:</b> Potential issues.</li>
+                    </ul>
+                    <li>You will gain points for accurately judging the translation quality.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+        <!-- Actual Examples -->
+        <div id="example-container" class="row" style="margin-top:10px; display: none;">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <strong id="example-heading">Example <span id="example-counter">1</span> / 20</strong>
+                    </div>
+                    <div class="panel-body">
+        
+                        <!-- Content Section -->
+                        <div class="content-wrapper">
+                            <!-- English Sentence -->
+                            <!-- <div class="sentence-box">
+                                <p class="text_screen" id="example-en">
+                                    <b>English Sentence</b> 
+                                </p>
+                            </div> -->
+        
+                            <!-- Spanish Translation -->
+                            <!-- <div class="sentence-box">
+                                <p class="background_screen" id="example-es">
+                                    <b>Spanish Translation</b> 
+                                </p>
+                            </div> -->
+
+                            <table class="example-table">
+                                <tr>
+                                  <td class="label-cell"><strong>English source</strong></td>
+                                  <td id="example-en" class="text-cell"></td>
+                                </tr>
+                                <tr>
+                                  <td class="label-cell"><strong>Spanish translation</strong></td>
+                                  <td id="example-es" class="text-cell"></td>
+                                </tr>
+                            </table>
+
+                            <!-- Example Details (One of four treatment condition) -->
+                            <div id="example-details" style="margin-top:20px;"></div>
+        
+                            <!-- Question: Shareability -->
+                            <div style="margin-top:20px; margin-left:20px;">
+                                <strong id="q1-text">(1) To the best of your knowledge, is the Spanish translation good enough to safely share with your neighbor?</strong>
+                            </div>
+                                <div style="margin-left:40px; margin-top:10px;">
+                                    <input type="radio" id="good" name="shareable" value="safe to share">
+                                    <label for="good" style="margin-right:10px; margin-left:5px; font-weight: normal;">Safe to share as-is <img src="{{ url_for('static', filename='images/good.png') }}" alt="Good icon" style="height: 16px; vertical-align: middle; margin-right: 5px;"></label><br>
+                                    
+                                    <!-- <input type="radio" id="minor" name="shareable" value="minor">
+                                    <label for="minor" style="margin-right:10px; margin-left:5px; font-weight: normal;">Minor errors, shareable <img src="{{ url_for('static', filename='images/minor.png') }}" alt="Minor icon" style="height: 16px; vertical-align: middle; margin-right: 5px;"></label><br> -->
+
+                                    <input type="radio" id="bad" name="shareable" value="needs review">
+                                    <label for="bad" style="margin-right:10px; margin-left:5px; font-weight: normal;">Needs bilingual review before sharing <img src="{{ url_for('static', filename='images/wrong.png') }}" alt="Wrong icon" style="height: 16px; vertical-align: middle; margin-right: 5px;"></label><br>      
+                                </div> 
+        
+                            <!-- Question: Confidence -->
+                            <div style="margin-top:20px; margin-left:20px;">
+                                <strong id="q2-text"> (2) How confident are you in your assessment? </strong>
+                            </div>
+                            <div style="margin-left:40px; margin-top:10px;">
+                                <input type="radio" id="confidence_1" name="confidence" value="1">
+                                <label for="confidence_1" style="margin-right:10px; margin-left:5px; font-weight: normal;">1 (Very unconfident)</label><br>
+                        
+                                <input type="radio" id="confidence_2" name="confidence" value="2">
+                                <label for="confidence_2" style="margin-right:10px; margin-left:5px; font-weight: normal;">2 (Unconfident)</label><br>
+                        
+                                <input type="radio" id="confidence_3" name="confidence" value="3">
+                                <label for="confidence_3" style="margin-right:10px; margin-left:5px; font-weight: normal;">3 (Neutral)</label><br>
+                        
+                                <input type="radio" id="confidence_4" name="confidence" value="4">
+                                <label for="confidence_4" style="margin-right:10px; margin-left:5px; font-weight: normal;">4 (Confident)</label><br>
+                        
+                                <input type="radio" id="confidence_5" name="confidence" value="5">
+                                <label for="confidence_5" style="margin-left:5px; font-weight: normal;">5 (Very confident)</label>
+                            </div>
+                        </div>
+        
+                        <!-- Next Example Button -->
+                        <div class="text-center" style="margin-top: 15px;">
+                            <button class="btn btn-primary" onclick="nextExample()">Next</button>
+                        </div>
+        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial Screen -->
+        <div class="row" style="margin-top:10px;" id="tutorial">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <strong id="tutorial-heading">Tutorial</strong>
+                    </div>
+                    <div class="task">
+                    
+                    <table class="example-table">
+                        <tr class="class-demo" data-step="1" data-title="English Sentence" data-intro="Original English sentence.">
+                            <td class="label-cell"><strong>English source</strong></td>
+                            <td id="tutorial-en" class="text-cell">In the worst affected countries including Italy, Spain and France, lockdowns like in China in January, have been implemented.</td>
+                        </tr>
+                        <tr class="class-demo" data-step="2" data-title="Spanish Translation" data-intro="The Spanish translation of the English sentence.">
+                            <td class="label-cell"><strong>Spanish translation</strong></td>
+                            <td id="tutorial-es" class="text-cell">En los países más afectados, incluidos Italia, España y Francia, se han implementado cierres como los de enero en China.</td>
+                        </tr>
+                        </table>
+        
+                    <div class="class-demo" data-step="3" data-title="Shareability?" data-intro="How shareable is the Spanish translation with your neighbor?">
+                        <div style="margin-top:20px; margin-left:20px;">
+                            <strong>(1) To the best of your knowledge, is the Spanish translation good enough to safely share with your neighbor?</strong>
+                        </div>
+                        <div style="margin-left:40px; margin-top:10px;">
+                            <input type="radio" id="good" name="shareable" value="safe to share">
+                            <label for="good" style="margin-right:10px; margin-left:5px; font-weight: normal;">Safe to share as-is <img src="{{ url_for('static', filename='images/good.png') }}" alt="Good icon" style="height: 16px; vertical-align: middle; margin-right: 5px;"></label><br>
+                            
+                            <!-- <input type="radio" id="minor" name="shareable" value="minor">
+                            <label for="minor" style="margin-right:10px; margin-left:5px; font-weight: normal;">Minor errors, shareable <img src="{{ url_for('static', filename='images/minor.png') }}" alt="Minor icon" style="height: 16px; vertical-align: middle; margin-right: 5px;"></label><br>
+ -->
+                            <input type="radio" id="bad" name="shareable" value="needs review">
+                            <label for="bad" style="margin-right:10px; margin-left:5px; font-weight: normal;">Needs bilingual review before sharing <img src="{{ url_for('static', filename='images/wrong.png') }}" alt="Wrong icon" style="height: 16px; vertical-align: middle; margin-right: 5px;"></label><br>      
+                        </div> 
+                    </div>
+        
+                    <div class="class-demo" data-step="4" data-title="Confidence?" data-intro="How confident are you in your assessment?">
+                        <div style="margin-top:20px; margin-left:20px;">
+                            <strong> (2) How confident are you in your assessment? </strong>
+                        </div>
+                        <div style="margin-left:40px; margin-top:10px;">
+                            <input type="radio" id="confidence_1" value="1">
+                            <label for="confidence_1" style="margin-right:10px; margin-left:5px; font-weight: normal;">1 (Very unconfident)</label><br>
+                    
+                            <input type="radio" id="confidence_2" value="2">
+                            <label for="confidence_2" style="margin-right:10px; margin-left:5px; font-weight: normal;">2 (Unconfident)</label><br>
+                    
+                            <input type="radio" id="confidence_3" value="3">
+                            <label for="confidence_3" style="margin-right:10px; margin-left:5px; font-weight: normal;">3 (Neutral)</label><br>
+                    
+                            <input type="radio" id="confidence_4" value="4">
+                            <label for="confidence_4" style="margin-right:10px; margin-left:5px; font-weight: normal;">4 (Confident)</label><br>
+                    
+                            <input type="radio" id="confidence_5" value="5">
+                            <label for="confidence_5" style="margin-left:5px; font-weight: normal;">5 (Very confident)</label>
+                        </div>
+                    </div>
+
+                    <div class="class-demo" data-step="5" data-title="Ready?" data-intro="Click <b>Start Survey</b> to begin the main survey.">
+                        <div class="screen" id="startsurvey_scrn" style="text-align: center; margin-top: 20px;">
+                            <button class="btn btn-primary" id="startSurveyFromTutorial">Start Survey</button>
+                        </div>
+                    </div>
+
+                    <script>
+                        document.getElementById("startSurveyFromTutorial").addEventListener("click", function () {
+                            document.getElementById("tutorial").style.display = "none";
+                            document.getElementById("abbreviated-instructions").style.display = "block";
+                            document.getElementById("example-container").style.display = "block";
+                            showExample(currentIndex);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                        });
+                    </script>
+                </div>
+            </div>
+            </div>
+        </div>
+        
+        <!-- Start survey screen after tutorial -->
+        <div class="screen" id="startsurvey_scrn" style="display: none; text-align: center; margin-top: 20px;">
+            <button class="btn btn-primary" id="startSurveyFromTutorial">Start Survey</button>
+        </div>
+  
+
+
+
+        <!-- Task Instructions -->
+        <div class="row" style="margin-top:10px;" id="instructions">
+            <div class="col-xs-12 col-md-12">
+                <div class="panel panel-primary">
+                    <a class="panel-heading" id="collapseTrigger"><strong>
+                        <img src="{{ url_for('static', filename='images/instruction.png') }}" alt="Instruction icon" style="height: 20px; position: relative; top: -3px; margin-right: 5px;">Task Instructions</strong></a>
+                    <div class="panel-body">
+                        <div class="ins" style="font-size: 20px;">
+                            <b>Project Title:</b> COVID-19 Translation Quality Assessment <img src="{{ url_for('static', filename='images/mask.png') }}" alt="COVID-19 icon" style="height: 28px; position: relative; top: -3px; margin-right: 5px;">
+                        </div>
+                        <div class="ins">
+                            Imagine it’s 2020, during the peak of the COVID pandemic.
+                            <br>
+                            You often read official guidelines and rules about the pandemic in English. 
+                            Your friendly neighbor, who only speaks <b>Spanish</b> <img src="{{ url_for('static', filename='images/spain.png') }}" alt="Spain icon" style="height: 16px; vertical-align: middle; top: -3px; margin-right: 5px;">, can’t access this information. 
+                            So, you decide to use AI-generated translations to share what you’ve learned with them.
+                            <ul>
+                                <li>Your goal is to judge whether certain translations are of sufficient quality to safely share since AI-generated translations may not be 100% perfect.</li>
+                                <li>First, you will see a pair of English sentence and its AI-generated Spanish translation. Do your best to decide whether the translations are safe to share, despite not being fluent in Spanish.</li>
+                                <li>Then, you will receive <span id="task-instruction-type"></span> to help you judge. You may change your initial decision after reviewing the <span id="task-instruction-type"></span>. It may not be displayed if the AI does not generate any.</li>
+                                <li><span id="task-instruction-detail"></span></li>
+                            </ul>
+                        </div>
+                        <br>
+                        <div class="ins">
+                            <b>Task Instructions:</b> 
+                            <ul>
+                                <li>Using the provided information, you will assess whether the Spanish translation is of sufficient quality to safely share with your Spanish neighbor.</li>
+                                <li>You can select one of the following two options:</li>
+                                    <ul>
+                                        <li><b>Safe to share as-is <img src="{{ url_for('static', filename='images/good.png') }}" alt="Good icon" style="height: 16px; vertical-align: middle; margin-right: 5px;">:</b> The Spanish translation has no or minimal risk.</li>
+                                        <!-- <li><b>Minor errors, shareable <img src="{{ url_for('static', filename='images/minor.png') }}" alt="Minor icon" style="height: 16px; vertical-align: middle; margin-right: 5px;">:</b> The Spanish translation contains minor inaccuracies or stylistic issues, but are unlikely to impact your neighbor's understanding.</li> -->
+                                        <li><b>Needs bilingual review before sharing <img src="{{ url_for('static', filename='images/wrong.png') }}" alt="Wrong icon" style="height: 16px; vertical-align: middle; margin-right: 5px;">:</b> The Spanish translation have some potential issues.</li>
+                                    </ul>
+                                <li>You will gain points for accurately judging the translation quality (Safe to share as-is, Needs bilingual review before sharing).</li>
+                                <li><span style="color: rgb(239, 98, 98);">Please do not reload the website during annotation.</span></li>
+                                <li><span style="color: rgb(239, 98, 98);">If possible, please complete the survey in a single sitting.</span></li>
+                            </ul>
+                        </div>
+                        <br>
+                        <div class="ins">
+                            <b>Compensation:</b> You will receive a compensation of $5 per session, which is estimated to take at most 20 minutes. If your accuracy exceeds 70%, you will receive a performance-based bonus of $2.
+                        </div>
+                        <br>
+                        <!-- <div class="ins">
+                            You will first see a tutorial screen that shows how the examples and questions are presented before starting the actual survey.
+                        </div> -->
+                        <div style="margin-top: 10px;">
+                            <button id="startTutorialButton" class="btn btn-primary">Start Tutorial</button>
+                        </div>
+
+                        <script>
+                            document.getElementById("startTutorialButton").addEventListener("click", function () {
+                            document.getElementById("instructions").style.display = "none";
+                            document.getElementById("tutorial").style.display = "block";
+                            introJs().start();
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        });
+
+                        // Clear previous radio button selections
+                        let shareableOptions = document.querySelectorAll('input[name="shareable"]');
+                        shareableOptions.forEach(option => option.checked = false);
+
+                        let confidenceOptions = document.querySelectorAll('input[name="confidence"]');
+                        confidenceOptions.forEach(option => option.checked = false);
+
+                        document.querySelectorAll('input[name="shareable"]').forEach(el => el.checked = false);
+                        document.querySelectorAll('input[name="confidence"]').forEach(el => el.checked = false);
+
+
+                        function showExample(index) {
+                            if (!examples || examples.length === 0) {
+                                console.error("Examples array is empty or undefined.");
+                                return;
+                            }
+                            
+                            if (index >= examples.length) {
+                                alert("No more examples.");
+                                return;
+                            }
+
+                            let example = examples[index];
+                            let isAttention = example.is_attention_check === true;
+
+                            let panelElement = document.querySelector('#example-container .panel');
+                            panelElement.classList.remove('panel-primary', 'panel-attention');
+
+                            // Add the right one
+                            if (isAttention) {
+                                panelElement.classList.add('panel', 'panel-attention');
+                            } else {
+                                panelElement.classList.add('panel', 'panel-primary');
+                            }
+
+                            document.querySelectorAll('input[name="shareable"]').forEach(el => el.checked = false);
+                            document.querySelectorAll('input[name="confidence"]').forEach(el => el.checked = false);
+
+                            const heading = document.getElementById("example-heading");
+                            if (isAttention) {
+                                heading.innerHTML = `
+                                    <img src="{{ url_for('static', filename='images/blue_megaphone.png') }}" 
+                                        alt="Attention icon" 
+                                        style="height: 16px; vertical-align: middle; margin-right: 5px;">
+                                    Attention Check Question`;
+                            } else {
+                                heading.innerHTML = `Example <span id="example-counter">${realExampleCounter + 1}</span> / 20`;
+                            }
+
+                            // document.getElementById("example-en").innerHTML = "<strong>English Source:</strong> " + example.en_src;
+                            // document.getElementById("example-es").innerHTML = "<strong>Spanish Translation:</strong> " + example.es_tgt;
+
+                            document.getElementById("example-en").innerText = example.en_src;
+                            document.getElementById("example-es").innerText = example.es_tgt;
+
+                            document.getElementById("q1-text").innerText = isAttention
+                                ? "(1) What did you choose for the previous claim?"
+                                : "(1) To the best of your knowledge, is the Spanish translation good enough to safely share with your neighbor?";
+
+                            document.getElementById("q2-text").innerText = isAttention
+                                ? "(2) What did you choose as your confidence level in the previous example?"
+                                : "(2) How confident are you in your assessment?";
+
+
+                            let task_instruction_details = "";
+                            if (condition == "askqe") {
+                                task_instruction_details += `
+                                    <b>AI Q&A pairs</b> are questions generated by an AI system about the original English content, along with AI-generated answers based on two sources: the original English text and the Spanish translation, which has been translated back into English for display.
+                                    `;
+                            } else if (condition === "bt") {
+                                task_instruction_details += `
+                                    <b>Round-trip AI translation</b> show how the AI system translates the Spanish version back into English.
+                                    `;
+                            } else if (condition == "explanation") {
+                                task_instruction_details += `
+                                    <b>AI explanation</b> is explanation generated by an AI system about the Spanish translation.
+                                    `;
+                            } else if (condition === "annotation") {
+                                task_instruction_details += `
+                                    <b>AI error detection</b> highlights words that the AI system identifies as translation errors in the Spanish translation.
+                                    `;
+                            }
+                            
+                            document.getElementById("task-instruction-detail").innerHTML = task_instruction_details;
+
+
+                            let details = "";
+                            if (step === 2) {
+                                if (condition === "askqe") {
+                                    if (isValid(example.questions) && isValid(example.ref_answers) && isValid(example.pred_answers)) {
+                                        details += `
+                                            <div style="margin-top:20px;">
+                                                <b>AI Q&A:</b> You will see questions generated by an AI system about the original English content, 
+                                                along with AI-generated answers based on two sources: the original English text (<b>"Answer based on English source"</b>) 
+                                                and the Spanish translation, which has been translated back into English for display (<b>"Answer based on Spanish translation"</b>).
+                                                <br>
+                                                <em>(If two answers are identical or highly similar, they are displayed in <span style="color: orange;">orange</span>, else, <span style="color: blue;">blue</span>.)</em>
+                                            </div>
+                                            <div style="margin-top:10px;"></div>
+                                            <table class="table table-bordered">
+                                                <thead style="background-color: #d6d6d6;">
+                                                    <tr>
+                                                        <th style="width: 33%;">Question</th>
+                                                        <th style="width: 33%;">Answer based on English source</th>
+                                                        <th style="width: 33%;">Answer based on Spanish translation</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>`;
+
+                                        // Loop through all questions and answers
+                                        // for (let i = 0; i < example.questions.length; i++) {
+                                        //     let isIdentical = example.ref_answers[i] === example.pred_answers[i];
+                                        //     let rowStyle = isIdentical ? 'style="color: grey;"' : '';  // Apply grey if identical
+
+                                        //     details += `
+                                        //         <tr ${rowStyle}>
+                                        //             <td>${example.questions[i]}</td>
+                                        //             <td>${example.ref_answers[i]}</td>
+                                        //             <td>${example.pred_answers[i]}</td>
+                                        //         </tr>`;
+                                        // }
+
+                                        // Add more nuanced approaches for determining grey area 
+                                        // Helper function to remove definite/indefinite articles
+                                        function normalize(str) {
+                                            return str
+                                                .toLowerCase()
+                                                .replace(/[.,!?;:()"']/g, '')         // remove punctuation
+                                                .replace(/\b(the|a|an)\b/g, '')       // remove articles
+                                                .replace(/\s+/g, ' ')                 // collapse spaces
+                                                .trim();
+                                        }
+
+                                        // Helper function to convert string to a Set of words
+                                        function getWordSet(str) {
+                                            return new Set(normalize(str).split(' '));
+                                        }
+
+                                        // Helper function to compare two word sets for equality
+                                        function setsEqual(setA, setB) {
+                                            if (setA.size !== setB.size) return false;
+                                            for (let item of setA) {
+                                                if (!setB.has(item)) return false;
+                                            }
+                                            return true;
+                                        }
+
+                                        // Loop through all questions and answers
+                                        for (let i = 0; i < example.questions.length; i++) {
+                                            const ref = example.ref_answers[i];
+                                            const pred = example.pred_answers[i];
+
+                                            const refSet = getWordSet(ref);
+                                            const predSet = getWordSet(pred);
+
+                                            let isIdentical = setsEqual(refSet, predSet);
+
+                                            // let rowStyle = isIdentical ? 'style="color: grey;"' : '';  // Apply grey if "effectively identical"
+                                            let answerColor = isIdentical ? 'orange' : 'blue';
+
+                                            details += `
+                                                <tr>
+                                                    <td>${example.questions[i]}</td>
+                                                    <td style="color: ${answerColor};">${ref}</td>
+                                                    <td style="color: ${answerColor};">${pred}</td>
+                                                </tr>`;
+                                        }
+
+                                        details += `</tbody></table>`;
+                                    }
+                                } else if (condition === "bt") {
+                                    if (isValid(example.backtranslation)) {
+                                        details += `
+                                        <div style="margin-top:20px;">
+                                            <b>Round-trip AI Translation:</b> You will see how the AI system translates the Spanish version back into English.
+                                        </div>
+                                        <div class="sentence-box" style="margin-top:10px;">
+                                            <p class="text_screen">
+                                                <b>Round-trip AI translation:</b> ${example.backtranslation}
+                                            </p>
+                                        </div>
+                                    `;
+                                    }
+                                } else if (condition === "explanation") {
+                                    if (isValid(example.explanation)) {
+                                        details += `
+                                        <div style="margin-top:20px;">
+                                            <b>AI Explanation:</b> You will see an explanation generated by an AI system about the Spanish translation.
+                                        </div>
+                                        <div class="sentence-box" style="margin-top:10px;">
+                                            <p class="text_screen">
+                                                <b>AI Explanation:</b> ${example.explanation}
+                                            </p>
+                                        </div>
+                                    `;
+                                    }
+                                } else if (condition === "annotation") {
+                                    if (isValid(example.xcomet_annotations)) {
+                                        let es_text = example.es_tgt;
+                                        let highlighted_text = es_text;
+
+                                        let annotations = [...example.xcomet_annotations];
+
+                                        let extracted_texts = annotations.map(annotation => {
+                                            let severityClass = annotation.severity === "critical" 
+                                                ? "highlight-critical" 
+                                                : annotation.severity === "major" 
+                                                    ? "highlight-major" 
+                                                    : "highlight-minor";
+
+                                            return `<li><span class="${severityClass}">${annotation.text}</span> (${annotation.severity})</li>`;
+                                        });
+
+                                        // Apply highlighting by replacing matching words in the text
+                                        annotations.forEach(annotation => {
+                                            let severityClass = annotation.severity === "critical" 
+                                                ? "highlight-critical" 
+                                                : annotation.severity === "major" 
+                                                    ? "highlight-major" 
+                                                    : "highlight-minor";
+
+                                            // Use a regex to replace the first occurrence of the annotated text
+                                            let regex = new RegExp(`\\b${annotation.text}\\b`, 'i'); 
+                                            highlighted_text = highlighted_text.replace(regex, `<span class="${severityClass}">${annotation.text}</span>`);
+                                        });
+
+                                        details += `
+                                            <div style="margin-top:20px;">
+                                                <b>AI Error Detection:</b> Words that the AI system identifies as translation errors will be highlighted in the Spanish translation. If nothing is displayed, it means the AI did not detect any errors.
+                                                <div class="severity-legend">
+                                                    (
+                                                    <span class="legend-box highlight-minor"></span> Minor 
+                                                    <span class="legend-box highlight-major"></span> Major 
+                                                    <span class="legend-box highlight-critical"></span> Critical
+                                                    )
+                                                </div>
+                                            </div>
+                                            <div class="sentence-box" style="margin-top:10px;">
+                                                <p class="text_screen">
+                                                    <b>Spanish Translation:</b> ${highlighted_text}
+                                                </p>
+                                            </div>
+                                        `;
+                                    }
+                            }
+                            }
+                        document.getElementById("example-details").innerHTML = details;
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+
+                        window.onload = function() {
+                            // generateAnnotatorId();
+                            init_toggle();
+                        };
+
+                        function nextExample() {
+                            if (currentIndex < examples.length) {
+                                let example = examples[currentIndex];
+                                let isAttention = example.is_attention_check === true;
+
+                            
+                                // Trial - NOT REQUIRED
+                                let shareabilityResponse = document.querySelector('input[name="shareable"]:checked')?.value || "";
+                                let confidenceResponse = document.querySelector('input[name="confidence"]:checked')?.value || "";
+                                
+                                // Actual - REQUIRED
+                                // let shareabilityResponse = document.querySelector('input[name="shareable"]:checked');
+                                // let confidenceResponse = document.querySelector('input[name="confidence"]:checked');
+
+                                // if (!shareabilityResponse || !confidenceResponse) {
+                                //     alert("Please answer both questions before continuing.");
+                                //     return;
+                                // }
+
+                                // shareabilityResponse = shareabilityResponse.value;
+                                // confidenceResponse = confidenceResponse.value;
+
+
+                                let responseData = {
+                                    prolific_id: sessionStorage.getItem("prolific_id") || "",
+                                    first_language: sessionStorage.getItem("first_language") || "",
+                                    en_proficiency: sessionStorage.getItem("en_proficiency") || "",
+                                    target_proficiency: sessionStorage.getItem("target_proficiency") || "",
+                                    mt_frequency: sessionStorage.getItem("mt_frequency") || "",
+                                    id: example.id,
+                                    step: step,
+                                    is_shareable: example.is_shareable,
+                                    en_src: example.en_src,
+                                    es_tgt: example.es_tgt,
+                                    pert_type: example.pert_type,
+                                    condition: condition,
+                                    shareability_response: shareabilityResponse,
+                                    confidence_response: confidenceResponse,
+                                    is_attention_check: example.is_attention_check || false
+                                };
+
+                                // Send response to the backend immediately
+                                fetch("/", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify(responseData)
+                                })
+                                .then(response => response.text())
+                                .then(data => {
+                                    console.log("Response saved:", data);
+                                })
+                                .catch(error => console.error("Error:", error));
+
+                                if (step === 1) {
+                                    step = 2;
+                                    showExample(currentIndex);  // re-show with feedback
+                                } else {
+                                    currentIndex++;
+                                    realExampleCounter++;
+                                    step = 1;
+                                    if (currentIndex < examples.length) {
+                                        showExample(currentIndex);
+                                    } else {
+                                        document.getElementById("example-container").style.display = "none";
+                                        document.getElementById("post-survey").style.display = "block";
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }
+                                }
+                            }
+
+                            //     if (!isAttention) {
+                            //         realExampleCounter++;
+                            //     } 
+                            //     currentIndex++;
+
+                            //     if (currentIndex < examples.length) {
+                            //         showExample(currentIndex);
+                            //     } else {
+                            //         document.getElementById("example-container").style.display = "none";
+                            //         document.getElementById("abbreviated-instructions").style.display = "none";
+                            //         document.getElementById("post-survey").style.display = "block";
+                            //         window.scrollTo({ top: 0, behavior: 'smooth' });
+                            //     }
+                            // }
+                        }
+
+                        function showTaskInstructions(condition) {
+                            const instructionText = (() => {
+                                if (condition === "askqe") return "<b>AI Q&A pairs</b>";
+                                if (condition === "bt") return "<b>Round-trip AI Translation</b>";
+                                if (condition === "annotation") return "<b>AI Error Detection</b>";
+                                if (condition === "explanation") return "<b>AI Explanation</b>";
+                                return "";
+                            })();
+
+                            const instructionDetail = (() => {
+                                if (condition === "askqe") {
+                                    return `<b>AI Q&A pairs</b> are questions generated by an AI system about the original English content, along with AI-generated answers based on two sources: the original English text and the Spanish translation, which has been translated back into English for display.`;
+                                } else if (condition === "bt") {
+                                    return `<b>Round-trip AI translation</b> shows how the AI system translates the Spanish version back into English.`;
+                                } else if (condition === "explanation") {
+                                    return `<b>AI explanation</b> is a summary generated by the AI system explaining what the Spanish translation means.`;
+                                } else if (condition === "annotation") {
+                                    return `<b>AI error detection</b> highlights words that the AI system identifies as translation errors in the Spanish translation.`;
+                                } else {
+                                    return "";
+                                }
+                            })();
+
+                            // Update all spans with this ID
+                            document.querySelectorAll('#task-instruction-type').forEach(span => {
+                                span.innerHTML = instructionText;
+                            });
+                            const detailSpan = document.getElementById("task-instruction-detail");
+                            if (detailSpan) {
+                                detailSpan.innerHTML = instructionDetail;
+                        }}
+                        showTaskInstructions(condition);
+
+                        </script>
+                        <ul>
+                            <div id="instructions-text-top"></div>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+
+
+
+
+<link crossorigin="anonymous" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" integrity="sha384-IS73LIqjtYesmURkDE9MXKbXqYA8rvKEp/ghicjem7Vc3mGRdQRptJSz60tvrB6+" rel="stylesheet" />
+<style type="text/css">
+    #tutorial, #instructions, #abbreviated-instructions, #example-container {
+        display: none;
+    }
+    #collapseTrigger{
+        color:#fff;
+        display: block;
+        text-decoration: none;
+    }
+    #submitButton{
+        white-space: normal;
+        display: table; 
+        margin: 0 auto;
+    }
+    .image{
+        margin-bottom: 15px; 
+    }
+    /* CSS for breaking long words/urls */
+    .dont-break-out {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        -ms-word-break: break-all;
+        word-break: break-all;
+        word-break: break-word;
+        -ms-hyphens: auto;
+        -moz-hyphens: auto;
+        -webkit-hyphens: auto;
+        hyphens: auto;
+    }
+    .task{
+        margin: 10px;
+    }
+    .text_screen {
+        border-style: solid;
+        margin: 0px 50px 0px 20px;
+        border-width: 3.5px;
+        border-color: #F5F5F5;
+        padding: 10px;
+        border-radius: 1px;
+    }
+
+    .example-table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 10px;
+        border: 1px solid #919191; /* dark gray border for entire table */
+    }
+
+    .example-table td {
+        border: 1px solid #919191; /* dark gray border for each cell */
+        padding: 8px;
+        vertical-align: top;
+    }
+
+    .label-cell {
+        width: 160px; /* wider label column */
+        background-color: #f0f0f0; /* light gray background */
+        font-weight: bold;
+    }
+
+    .highlight-minor {
+        background-color: #faf093;  /* Light orange for minor severity */
+        font-weight: bold;
+        display: inline;
+        padding: 2px;
+        margin: 0px;
+        line-height: 1.2;
+    }
+
+    .highlight-major {
+        background-color: #FFD580;  /* Light red for major severity */
+        font-weight: bold;
+        display: inline;
+        padding: 2px;
+        margin: 0px;
+        line-height: 1.2;
+    }
+
+    .highlight-critical {
+        background-color: #f79b9b;  /* Darker red for critical severity */
+        color: white;  /* Ensures better readability */
+        font-weight: bold;
+        display: inline;
+        padding: 2px;
+        margin: 0px;
+        line-height: 1.2;
+    }
+    .radio-options label {
+        font-weight: normal;
+        margin-left: 20px;
+    }
+    .radio-text {
+        margin-left: 8px;  /* Space between radio button and label text */
+        display: inline-block;
+    }
+
+    .background_screen{
+        margin-top:0px;
+        margin: 0px 50px 0px 20px;
+        border-width: 0.5px;
+        padding: 10px;
+        background-color: #F5F5F5;
+        border-radius: 1px;
+    }
+
+    input[type="text"],
+        select.form-control {
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid #000000;
+        -webkit-box-shadow: none;
+        box-shadow: none;
+        border-radius: 0;
+        }
+
+        input[type="text"]:focus,
+        select.form-control:focus {
+        -webkit-box-shadow: none;
+        box-shadow: none;
+        }
+</style>
+
+
+<script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js" integrity="sha384-s1ITto93iSMDxlp/79qhWHi+LsIi9Gx6yL+cOKDuymvihkfol83TYbLbOw+W/wv4" crossorigin="anonymous"></script>
+<script src="static/js/intro.js"></script>
+<script src="static/js/screen.js"></script>
+<script src="static/js/startup.js"></script>
+<script src="static/js/instructions.js"></script>
+<script src="static/js/survey.js"></script>
+<script src="static/js/main.js"></script>
+<script src="static/js/highlight.js"></script>
