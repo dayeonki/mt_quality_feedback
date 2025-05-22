@@ -14,7 +14,7 @@ This repository contains the code and dataset for our paper **Should I Share thi
 In our human study, each English-speaking monolingual participant reviews a sequence of 20 decision-making examples. Each example is shown in a two-step process: **1) Independent decision-making**: Participants first make judgments based solely on the English source and its Spanish MT output and **2) AI-Assisted decision-making**: They then reassess the same example with one of four randomly assigned feedback types. For each step, they respond to two questions: 1) Shareability: To the best of your knowledge, is the Spanish translation good enough to safely share with your Spanish-speaking neighbor? and 2) Confidence: How confident are you in your assessment? The following figure is an illustration of our human study setup.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b37766f5-8fed-44c1-bf18-5eaa6c2c54cc" width="800">
+  <img src="https://github.com/user-attachments/assets/b37766f5-8fed-44c1-bf18-5eaa6c2c54cc" width="700">
 </p>
 
 ## Quick Links
