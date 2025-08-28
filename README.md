@@ -2,7 +2,7 @@
 
 Authors: Dayeon Ki, Kevin Duh, Marine Carpuat
 
-This repository contains the code and dataset for our paper **Should I Share this Translation? Evaluating Quality Feedback for User Reliance on Machine Translation**.
+This repository contains the code and dataset for our EMNLP 2025 Main paper **Should I Share this Translation? Evaluating Quality Feedback for User Reliance on Machine Translation**.
 
 <div align="center">
 <img src="https://github.com/user-attachments/assets/b3415a65-ccac-4468-a291-07602cb95509" style="width: 15px;" alt="code"> <b><a href=https://github.com/dayeonki/mt_quality_feedback>Code</a></b> | 
