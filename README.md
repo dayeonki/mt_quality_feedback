@@ -6,7 +6,7 @@ This repository contains the code and dataset for our EMNLP 2025 Main paper **Sh
 
 <div align="center">
 <img src="https://github.com/user-attachments/assets/b3415a65-ccac-4468-a291-07602cb95509" style="width: 15px;" alt="code"> <b><a href=https://github.com/dayeonki/mt_quality_feedback>Code</a></b> | 
-  <img src="https://github.com/user-attachments/assets/fc2ca3c2-3e78-4ca4-a208-448c0a6c7068" style="width: 15px;" alt="paper"> <b><a href=https://drive.google.com/file/d/1gjhPpiKtAsCau6rFZShUMsJTlCQb4tmu/view?usp=sharing>Paper</a></b>
+  <img src="https://github.com/user-attachments/assets/fc2ca3c2-3e78-4ca4-a208-448c0a6c7068" style="width: 15px;" alt="paper"> <b><a href=https://arxiv.org/abs/2505.24683>Paper</a></b>
 </div>
 
 
