@@ -1,47 +1,74 @@
-# Should I Share this Translation? Evaluating Quality Feedback for User Reliance on Machine Translation
+<div align="center">
 
-Authors: Dayeon Ki, Kevin Duh, Marine Carpuat
+ # Should I Share this Translation? Evaluating Quality Feedback <br> for User Reliance on Machine Translation
 
-This repository contains the code and dataset for our EMNLP 2025 Main paper **Should I Share this Translation? Evaluating Quality Feedback for User Reliance on Machine Translation**.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b37766f5-8fed-44c1-bf18-5eaa6c2c54cc" width="800">
+</p>
+
+<a href=https://dayeonki.github.io/>Dayeon Ki</a><sup>1</sup>, <a href=https://www.cs.jhu.edu/~kevinduh/>Kevin Duh</a><sup>2</sup>, <a href=https://www.cs.umd.edu/~marine/>Marine Carpuat<a><sup>1</sup> <br>
+<sup>1</sup>University of Maryland, <sup>2</sup>Johns Hopkins University
+<br>
+
+This repository contains the code and dataset for our EMNLP 2025 Main paper <br> **Should I Share this Translation? Evaluating Quality Feedback for User Reliance on Machine Translation**.
+
+<p>
+  <a href="https://aclanthology.org/2025.emnlp-main.606/" target="_blank" style="text-decoration:none">
+    <img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?style=flat&logo=arxiv" alt="arXiv">
+  </a>
+</p>
+
+</div>
+
+---
+
+## 👾 TL;DR
+In our human study, each English-speaking monolingual participant reviews a sequence of 20 decision-making examples. Each example is shown in a two-step process: (**1**) **Independent** decision-making: Participants first make judgments based solely on the English source and its Spanish MT output and (**2**) **AI-Assisted** decision-making: They then reassess the same example with one of four randomly assigned feedback types. For each step, they respond to two questions: (i) Shareability: To the best of your knowledge, is the Spanish translation good enough to safely share with your Spanish-speaking neighbor? and (ii) Confidence: How confident are you in your assessment? The following figure is an illustration of our human study setup.
+
+
+## 📰 News
+- **`2025-08-20`** Our paper is accepted to **EMNLP 2025**!
+
+
+## ✏️ Content
+- [🗺️ Overview](#overview)
+- [🚀 Quick Start](#quick_start)
+  - [Quality Feedback](#quality-feedback)
+  - [Task Interface](#task-interface)
+  - [Evaluation](#evaluation)
+  - [Visualization](#visualization)
+- [🤲 Citation](#citation)
+- [📧 Contact](#contact)
+
+---
+
+<a id="overview"></a>
+## 🗺️ Overview
+
+As people increasingly use AI systems in work and daily life, mechanisms that help them use AI responsibly are urgently needed, especially when they are _not_ equipped to verify AI predictions themselves. We study a realistic Machine Translation (MT) scenario where monolingual users decide whether to share an MT output, first without and then with quality feedback.
+
+We compare four types of quality feedback: **explicit** feedback that directly give users an assessment of translation quality using (1) error highlights and (2) LLM explanations, and **implicit** feedback that helps users compare MT inputs and outputs through (3) backtranslation and (4) question–answer (QA) tables.
+
+### Results
 
 <div align="center">
-<img src="https://github.com/user-attachments/assets/b3415a65-ccac-4468-a291-07602cb95509" style="width: 15px;" alt="code"> <b><a href=https://github.com/dayeonki/mt_quality_feedback>Code</a></b> | 
-  <img src="https://github.com/user-attachments/assets/fc2ca3c2-3e78-4ca4-a208-448c0a6c7068" style="width: 15px;" alt="paper"> <b><a href=https://arxiv.org/abs/2505.24683>Paper</a></b>
+<img width="1000" height="292" alt="Screenshot 2026-04-03 at 2 07 12 PM" src="https://github.com/user-attachments/assets/b4e9db6c-13a9-415f-9ec3-eca3c6e243e5" />
 </div>
 
 
-## Abstract
-In our human study, each English-speaking monolingual participant reviews a sequence of 20 decision-making examples. Each example is shown in a two-step process: **1) Independent decision-making**: Participants first make judgments based solely on the English source and its Spanish MT output and **2) AI-Assisted decision-making**: They then reassess the same example with one of four randomly assigned feedback types. For each step, they respond to two questions: 1) Shareability: To the best of your knowledge, is the Spanish translation good enough to safely share with your Spanish-speaking neighbor? and 2) Confidence: How confident are you in your assessment? The following figure is an illustration of our human study setup.
+<a id="quick_start"></a>
+## 🚀 Quick Start
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/b37766f5-8fed-44c1-bf18-5eaa6c2c54cc" width="700">
-</p>
-
-## Quick Links
-- [Quality Feedback Types](#quality-feedback-types)
-- [Task Interface](#task-interface)
-- [Evaluation](#evaluation)
-- [Visualization](#visualization)
-
-
-
-## Quality Feedback Types
+### Quality Feedback
 
 We explore four types of quality feedback in our human study. Detailed process used to generate each feedback is outlined in the paper.
 
-- **Explicit** quality assessments of MT output
-  - Error Highlights
-  - LLM Explanation
-- **Implicit** assessments to guide participants compare MT input and output
-  - Backtranslation
-  - QA Table
-
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/879ee2ef-4e3c-4381-ba70-423e4a152a4c" width="700">
+  <img src="https://github.com/user-attachments/assets/879ee2ef-4e3c-4381-ba70-423e4a152a4c" width="800">
 </p>
 
 
-## Task Interface
+### Task Interface
 
 We provide codebase for building our custom task interface in `interface/`. Code is written based on the interface code from EMNLP 2023 paper <a href="https://github.com/Elbria/Ex-SemDiv?tab=readme-ov-file">Explaining with Contrastive Phrasal Highlighting: A Case Study in Assisting Humans to Detect Translation Differences</a>.
 
@@ -52,11 +79,11 @@ Go through the following steps to run the interface:
 - `python -u app.py > app.log`: Run the `app.py` file and log results to `app.log` file.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/3854b2d9-c71e-4b2a-bd84-3397dc8b0bf2" width="700">
+  <img src="https://github.com/user-attachments/assets/3854b2d9-c71e-4b2a-bd84-3397dc8b0bf2" width="800">
 </p>
 
 
-## Evaluation
+### Evaluation
 
 We measure three dependent variables in our paper: (1) Decision accuracy, (2) CWA (Confidence-Weighted Accuracy), and (3) Switch percentage.
 
@@ -84,8 +111,7 @@ We further test **statistical significance** for each dependent variable:
 - `evaluation/significance_test/per_label.py`: Significance test per shareability label (Safe to share as-is, Needs bilingual review before sharing).
 
 
-
-## Visualization
+### Visualization
 
 We release our code used for creating visualizations in the paper:
 
@@ -106,3 +132,35 @@ We release our code used for creating visualizations in the paper:
 <p align="center">
   <img src="https://github.com/user-attachments/assets/89dcf83d-62a7-4ffb-8f0a-1343eef8c75f" width="400">
 </p>
+
+---
+
+<a id="citation"></a>
+## 🤲 Citation
+If you find our work useful in your research, please consider citing our work:
+```
+@inproceedings{ki-etal-2025-share,
+    title = "Should {I} Share this Translation? Evaluating Quality Feedback for User Reliance on Machine Translation",
+    author = "Ki, Dayeon  and
+      Duh, Kevin  and
+      Carpuat, Marine",
+    editor = "Christodoulopoulos, Christos  and
+      Chakraborty, Tanmoy  and
+      Rose, Carolyn  and
+      Peng, Violet",
+    booktitle = "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing",
+    month = nov,
+    year = "2025",
+    address = "Suzhou, China",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.emnlp-main.606/",
+    doi = "10.18653/v1/2025.emnlp-main.606",
+    pages = "12069--12092",
+    ISBN = "979-8-89176-332-6",
+}
+```
+
+<a id="contact"></a>
+## 📧 Contact
+For questions, issues, or collaborations, please reach out to [dayeonki@umd.edu](mailto:dayeonki@umd.edu).
+
