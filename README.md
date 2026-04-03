@@ -1,6 +1,6 @@
 <div align="center">
 
- # Should I Share this Translation? Evaluating Quality Feedback <br> for User Reliance on Machine Translation
+ # Should I Share this Translation? <br> Evaluating Quality Feedback for User Reliance on Machine Translation
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/b37766f5-8fed-44c1-bf18-5eaa6c2c54cc" width="800">
